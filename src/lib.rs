@@ -1,5 +1,5 @@
 #[cfg(feature = "aho-corasick")]
-pub fn reconstruct(string: &str, dictionary: &[&str]) -> Vec<String> {
+pub fn reconstruct<'a>(string: &'a str, dictionary: &[&str]) -> Vec<&'a str> {
     use aho_corasick::AhoCorasickBuilder;
 
     let ac = AhoCorasickBuilder::new()
@@ -8,13 +8,38 @@ pub fn reconstruct(string: &str, dictionary: &[&str]) -> Vec<String> {
 
     ac.find_iter(string)
         .map(|m| &string[m.start()..m.end()])
-        .map(ToOwned::to_owned)
         .collect()
 }
 
 #[cfg(not(feature = "aho-corasick"))]
-pub fn reconstruct(string: &str, dictionary: &[&str]) -> Vec<String> {
-    unimplemented!()
+pub fn reconstruct<'a>(string: &'a str, dictionary: &[&str]) -> Vec<&'a str> {
+    let mut sentence = Vec::new();
+
+    let mut start = 0;
+    while start < string.len() {
+        let m = find(&string[start..], dictionary);
+        let end = start + m.len();
+        sentence.push(&string[start..end]);
+        start = end;
+    }
+    sentence
+}
+
+#[cfg(not(feature = "rayon"))]
+fn find<'dict>(substring: &str, dictionary: &[&'dict str]) -> &'dict str {
+    dictionary
+        .iter()
+        .find(|&&word| substring.starts_with(word))
+        .expect("the string must be composed of words from the dictionary")
+}
+
+#[cfg(feature = "rayon")]
+fn find<'dict>(substring: &str, dictionary: &[&'dict str]) -> &'dict str {
+    use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+    dictionary
+        .par_iter()
+        .find_first(|&&word| substring.starts_with(word))
+        .expect("the string must be composed of words from the dictionary")
 }
 
 #[cfg(test)]
