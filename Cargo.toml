@@ -1,0 +1,14 @@
+[package]
+name = "reconstruct"
+version = "0.0.0"
+authors = ["Spaceface16518 <33424649+Spaceface16518@users.noreply.github.com>"]
+edition = "2018"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aho-corasick = { version = "0.7.10", optional = true }
+
+[features]
+default = ["aho-corasick"]
