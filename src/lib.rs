@@ -12,6 +12,11 @@ pub fn reconstruct(string: &str, dictionary: &[&str]) -> Vec<String> {
         .collect()
 }
 
+#[cfg(not(feature = "aho-corasick"))]
+pub fn reconstruct(string: &str, dictionary: &[&str]) -> Vec<String> {
+    unimplemented!()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::reconstruct;
