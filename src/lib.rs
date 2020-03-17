@@ -1,6 +1,6 @@
 #[cfg(feature = "aho-corasick")]
 pub fn reconstruct(string: &str, dictionary: &[&str]) -> Vec<String> {
-    use aho_corasick::{AhoCorasickBuilder, MatchKind};
+    use aho_corasick::AhoCorasickBuilder;
 
     let ac = AhoCorasickBuilder::new()
         .auto_configure(dictionary)
