@@ -3,12 +3,14 @@ pub fn reconstruct(string: &str, dictionary: &[&str]) -> Vec<String> {
     use aho_corasick::{AhoCorasickBuilder, MatchKind};
 
     let ac = AhoCorasickBuilder::new()
-        .match_kind(MatchKind::LeftmostFirst)
         .prefilter(false)
         .auto_configure(dictionary)
         .build(dictionary);
 
-    ac.find_iter(string).map(|m| &string[m.start()..m.end()]).map(ToOwned::to_owned).collect()
+    ac.find_iter(string)
+        .map(|m| &string[m.start()..m.end()])
+        .map(ToOwned::to_owned)
+        .collect()
 }
 
 #[cfg(test)]
