@@ -3,7 +3,6 @@ pub fn reconstruct(string: &str, dictionary: &[&str]) -> Vec<String> {
     use aho_corasick::{AhoCorasickBuilder, MatchKind};
 
     let ac = AhoCorasickBuilder::new()
-        .prefilter(false)
         .auto_configure(dictionary)
         .build(dictionary);
 
