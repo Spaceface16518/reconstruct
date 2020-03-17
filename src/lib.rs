@@ -1,45 +1,48 @@
 #[cfg(feature = "aho-corasick")]
-pub fn reconstruct<'a>(string: &'a str, dictionary: &[&str]) -> Vec<&'a str> {
+pub fn reconstruct<'a>(string: &'a str, dictionary: &[&str]) -> Option<Vec<&'a str>> {
     use aho_corasick::AhoCorasickBuilder;
 
     let ac = AhoCorasickBuilder::new()
         .auto_configure(dictionary)
         .build(dictionary);
-
-    ac.find_iter(string)
-        .map(|m| &string[m.start()..m.end()])
-        .collect()
+    let mut sentence_length = 0;
+    let sentence = ac.find_iter(string).map(|m| &string[m.start()..m.end()]).inspect(|s| sentence_length += s.len()).collect();
+    if sentence_length == string.len() {
+        Some(sentence)
+    } else {
+        None
+    }
 }
 
 #[cfg(not(feature = "aho-corasick"))]
-pub fn reconstruct<'a>(string: &'a str, dictionary: &[&str]) -> Vec<&'a str> {
+pub fn reconstruct<'a>(string: &'a str, dictionary: &[&str]) -> Option<Vec<&'a str>> {
     let mut sentence = Vec::new();
 
     let mut start = 0;
     while start < string.len() {
-        let m = find(&string[start..], dictionary);
+        let m = find(&string[start..], dictionary)?;
         let end = start + m.len();
         sentence.push(&string[start..end]);
         start = end;
     }
-    sentence
+    Some(sentence)
 }
 
-#[cfg(not(feature = "rayon"))]
-fn find<'dict>(substring: &str, dictionary: &[&'dict str]) -> &'dict str {
+#[cfg(all(not(feature = "aho-corasick"), not(feature = "rayon")))]
+fn find<'dict>(substring: &str, dictionary: &[&'dict str]) -> Option<&'dict str> {
     dictionary
         .iter()
-        .find(|&&word| substring.starts_with(word))
-        .expect("the string must be composed of words from the dictionary")
+        .copied()
+        .find(|&word| substring.starts_with(word))
 }
 
-#[cfg(feature = "rayon")]
-fn find<'dict>(substring: &str, dictionary: &[&'dict str]) -> &'dict str {
+#[cfg(all(feature = "rayon", not(feature = "aho-corasick")))]
+fn find<'dict>(substring: &str, dictionary: &[&'dict str]) -> Option<&'dict str> {
     use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
     dictionary
         .par_iter()
-        .find_first(|&&word| substring.starts_with(word))
-        .expect("the string must be composed of words from the dictionary")
+        .copied()
+        .find_first(|&word| substring.starts_with(word))
 }
 
 #[cfg(test)]
@@ -52,8 +55,8 @@ mod tests {
         let string = "thequickbrownfox";
 
         let expected = &["the", "quick", "brown", "fox"];
-        let actual = reconstruct(string, dictionary);
-        assert_eq!(&actual, expected)
+        let actual = reconstruct(string, dictionary).expect("valid input should return Some");
+        assert_eq!(actual, expected)
     }
 
     #[test]
@@ -63,7 +66,16 @@ mod tests {
 
         let expected1 = &["bed", "bath", "and", "beyond"];
         let expected2 = &["bedbath", "and", "beyond"];
+        let actual = reconstruct(string, dictionary).expect("valid input should return Some");
+        assert!(actual == expected1 || actual == expected2);
+    }
+
+    #[test]
+    fn non_example() {
+        let dictionary = &["quick", "brown", "the", "fox"];
+        let string = "thequickandbrownfox";
+
         let actual = reconstruct(string, dictionary);
-        assert!(&actual == expected1 || &actual == expected2);
+        assert!(actual.is_none())
     }
 }
